@@ -1,21 +1,29 @@
+
 <html>
   <head>
+    <script src="https://js.stripe.com/v3/"></script>
     <title>Buy Item {{ item.id }}</title>
   </head>
   <body>
+    {% if payment_status == 'success' %}
+    <h4>Заказ товара "{{ item.name }}" оформлен успешно</h4>
+    {% elif payment_status == 'cancel' %}
+    <h4>Возникла ошибка при оформление заказа "{{ item.name }}"</h4>
+    {% endif %}
     <h1>{{ item.name }}</h1>
     <p>{{ item.description }}</p>
     <button id="buy-button">Buy</button>
     <script type="text/javascript">
-      var stripe = Stripe({{ stripe_pk }});
+      const stripe = Stripe('{{ stripe_pk }}');
       var buyButton = document.getElementById('buy-button');
       buyButton.addEventListener('click', function() {
         // Create a new Checkout Session using the server-side endpoint 
         // Redirect to Stripe Session Checkout
-        fetch('/buy/1', {method: 'GET'})
-        .then(response => return response.json())
-        .then(session => stripe.redirectToCheckout({ sessionId: session.id }))
-      });
+        fetch('/buy/{{ item.id }}?quantity={{ quantity }}', {method: 'GET'})
+        .then((response) => { return response.json(); })
+        .then((session) => { console.log(session);
+          return stripe.redirectToCheckout({ sessionId: session.session_id });} 
+        )});
     </script>
   </body>
 </html>
