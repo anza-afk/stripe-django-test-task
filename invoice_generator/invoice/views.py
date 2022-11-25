@@ -61,13 +61,20 @@ class OrderView(TemplateView):
 
     def get_context_data(self, **kwargs):
         items = [Item.objects.get(id=order_id) for order_id in self.request.GET.getlist('id')]
+        order = Order()
+        order.save()
+        for item in items:
+            order.item.add(item)
+        order.save()
         context = super().get_context_data(**kwargs)
         context['stripe_pk'] = settings.STRIPE_PUBLIC_KEY
-        context['items'] = items
+        context['order'] = order.item.all()
         context['payment_status'] = self.request.GET.get('payment_status')
         context['quantity'] = self.request.GET.get('quantity', 1)
         return context
 
     def get(self, request, *args, **kwargs):
         context = self.get_context_data(**kwargs)
+        
+
         return self.render_to_response(context)
