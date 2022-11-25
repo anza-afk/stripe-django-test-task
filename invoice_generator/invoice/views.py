@@ -6,7 +6,6 @@ from .forms import OrderForm
 from .models import Item, Order
 
 
-
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 domain_url = 'http://127.0.0.1:8000/item/'
@@ -45,8 +44,6 @@ class SessionView(View):
 
 class InvoiceView(TemplateView):
 
-    template_name = "index.html"
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['stripe_pk'] = settings.STRIPE_PUBLIC_KEY
@@ -61,8 +58,6 @@ class InvoiceView(TemplateView):
 
 
 class OrderView(TemplateView):
-
-
 
     def get_context_data(self, **kwargs):
         items = [Item.objects.get(id=order_id) for order_id in self.request.GET.getlist('id')]
