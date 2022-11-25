@@ -21,7 +21,7 @@
         {% elif payment_status == 'cancel' %}
         <h4>Возникла ошибка при оформление заказа "{{ item.name }}"</h4>
         {% endif %}
-        {% for item in items %}
+        {% for item in order %}
         <h1>{{ item.name }}</h1>
         <p>{{ item.description }}</p>
         {% endfor %}
@@ -29,8 +29,8 @@
         <script type="text/javascript">
           const stripe = Stripe('{{ stripe_pk }}');
           var buyButton = document.getElementById('buy-button');
-          var url = '/buy/{{order.id}}?order=True'
-
+          var params = new URLSearchParams(window.location.search).toString();
+          var url = '/buy?' + params
           console.log(url)
           buyButton.addEventListener('click', function() {
             fetch(url, {method: 'GET'})
