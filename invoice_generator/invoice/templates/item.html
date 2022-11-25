@@ -10,8 +10,10 @@
     {% elif payment_status == 'cancel' %}
     <h4>Возникла ошибка при оформление заказа "{{ item.name }}"</h4>
     {% endif %}
+
     <h1>{{ item.name }}</h1>
     <p>{{ item.description }}</p>
+
     <button id="buy-button">Buy</button>
     <script type="text/javascript">
       const stripe = Stripe('{{ stripe_pk }}');

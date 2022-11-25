@@ -1,0 +1,32 @@
+
+<html>
+  <head>
+    <script src="https://js.stripe.com/v3/"></script>
+    <title>Buy Item {{ item.id }}</title>
+  </head>
+  <body>
+    {% if payment_status == 'success' %}
+    <h4>Заказ товара "{{ item.name }}" оформлен успешно</h4>
+    {% elif payment_status == 'cancel' %}
+    <h4>Возникла ошибка при оформление заказа "{{ item.name }}"</h4>
+    {% endif %}
+    {% for item in order %}
+    <h1>{{ item.name }}</h1>
+    <p>{{ item.description }}</p>
+    {% endfor %}
+    <button id="buy-button">Buy</button>
+    <script type="text/javascript">
+      const stripe = Stripe('{{ stripe_pk }}');
+      var buyButton = document.getElementById('buy-button');
+      var params = new URLSearchParams(window.location.search).toString();
+      var url = '/buy?' + params
+      console.log(url)
+      buyButton.addEventListener('click', function() {
+        fetch(url, {method: 'GET'})
+        .then((response) => { return response.json(); })
+        .then((session) => { console.log(session);
+          return stripe.redirectToCheckout({ sessionId: session.session_id });} 
+        )});
+    </script>
+  </body>
+</html>
