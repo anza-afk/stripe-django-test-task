@@ -1,11 +1,13 @@
 import stripe
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.conf import settings
 from django.urls import reverse
 from django.views.generic import TemplateView, View, FormView
 from .forms import OrderForm
 from .models import Item, Order
 from datetime import datetime
+from django.views.decorators.csrf import csrf_exempt
+import json
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -19,7 +21,6 @@ class SessionView(View):
         if self.request.GET.get('order'):
             order = Order.objects.get(id=self.kwargs['id'])
             tax = [order.tax.stripe_id, ] if order.tax else None
-            print(tax)
             for item in order.item.all():
                 line_items.append({
                     'price': item.price,
@@ -27,14 +28,20 @@ class SessionView(View):
                     'tax_rates': tax
                 })
             discount = order.discount.coupon_id
+            metadata = {
+                "order_id": order.id
+            }
         else:
             item = Item.objects.get(id=self.kwargs['id'])
             quantity = request.GET.get('quantity', 1)
             line_items.append({
                 'price': item.price,
-                'quantity': quantity
+                'quantity': quantity,
             })
             discount = None
+            metadata = {
+                "item_id": item.id
+            }
 
         checkout_session = stripe.checkout.Session.create(
             cancel_url=f'{domain_url}/create_order',
@@ -44,9 +51,7 @@ class SessionView(View):
             discounts=[{
                 'coupon': discount,
             }],
-            # tax_id_collection={
-            #     'enabled': True,
-            # },
+            metadata=metadata
             )
         return JsonResponse({'session_id': checkout_session.id})
 
@@ -101,3 +106,85 @@ class OrderFormView(FormView):
             kwargs={'id': new_order.id}
         )
         return super().form_valid(form)
+
+
+class IntentView(View):
+    def post(self, request, *args, **kwargs):
+        try:
+            request_json = json.loads(request.body)
+            customer = stripe.Customer.create(email=request_json['email'])
+            if self.request.GET.get('order'):
+                order = Order.objects.get(id=self.kwargs['id'])
+                amount = 0
+                for item in order.item.all*():
+
+                    amount += int(stripe.Price.retrieve(item.price))
+                metadata = {
+                    "order_id": order.id
+                }
+            else:
+                item = Item.objects.get(id=self.kwargs['id'])
+                amount = stripe.Price.retrieve(item.price)['unit_amount']
+                metadata = {
+                    "item_id": item.id
+                }
+            intent = stripe.PaymentIntent.create(
+                amount=amount,
+                currency='usd',
+                customer=customer['id'],
+                metadata=metadata
+            )
+            print(intent['client_secret'])
+            return JsonResponse({
+                'clientSecret': intent['client_secret']
+            })
+        except Exception as e:
+            print(e)
+            return JsonResponse({'error': str(e)})
+
+
+@csrf_exempt
+def stripe_webhook(request):
+    payload = request.body
+    sig_header = request.META['HTTP_STRIPE_SIGNATURE']
+    event = None
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError:
+        return HttpResponse(status=400)
+    except stripe.error.SignatureVerificationError:
+        return HttpResponse(status=400)
+
+    # Handle the checkout.session.completed event
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+
+        customer_email = session["customer_details"]["email"]
+        if session["metadata"].get("item_id"):
+            product_id = session["metadata"]["item_id"]
+            order = Item.objects.get(id=product_id)
+        elif session["metadata"].get("order_id"):
+            product_id = session["metadata"]["order_id"]
+            order = Order.objects.get(id=product_id)
+
+        # - send email to the customer
+        print(customer_email, order.id)
+        #
+    elif event["type"] == "payment_intent.succeeded":
+
+        intent = event['data']['object']
+
+        stripe_customer_id = intent["customer"]
+        stripe_customer = stripe.Customer.retrieve(stripe_customer_id)
+
+        customer_email = stripe_customer['email']
+        if intent["metadata"].get("item_id"):
+            product_id = intent["metadata"]["item_id"]
+            order = Item.objects.get(id=product_id)
+        elif intent["metadata"].get("order_id"):
+            product_id = intent["metadata"]["order_id"]
+            order = Order.objects.get(id=product_id)
+    return HttpResponse(status=200)
