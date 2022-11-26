@@ -15,6 +15,10 @@ class Item(models.Model):
 
 class Discount(models.Model):
     value = models.FloatField()
+    coupon_id = models.CharField(
+        max_length=100,
+        unique=True,
+        )
 
     class Meta:
         verbose_name = 'Discount'

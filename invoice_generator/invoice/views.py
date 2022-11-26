@@ -22,14 +22,16 @@ class SessionView(View):
                 line_items.append({
                     'price': item.price,
                     'quantity': 1   ##########
-                    })
+                })
+            discount = order.discount.coupon_id
         else:            
             item = Item.objects.get(id=self.kwargs['id'])
             quantity = request.GET.get('quantity', 1)
             line_items.append({
                 'price': item.price,
                 'quantity': quantity
-                })
+            })
+            discount = None
        
 
         checkout_session = stripe.checkout.Session.create(
@@ -37,6 +39,9 @@ class SessionView(View):
             success_url=f'{domain_url}/create_order',
             mode='payment',
             line_items=line_items,
+            discounts=[{
+                'coupon': discount,
+            }],
             )
         return JsonResponse({'session_id': checkout_session.id})
 
@@ -89,5 +94,5 @@ class OrderFormView(FormView):
         self.success_url = reverse(
             'order_invoice',
             kwargs={'id': new_order.id}
-            )
+        )
         return super().form_valid(form)
