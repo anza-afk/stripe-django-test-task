@@ -9,7 +9,7 @@ from datetime import datetime
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
-domain_url = 'http://127.0.0.1:8000/item/'
+domain_url = 'http://127.0.0.1:8000/'
 
 
 class SessionView(View):
@@ -18,13 +18,16 @@ class SessionView(View):
         line_items = []
         if self.request.GET.get('order'):
             order = Order.objects.get(id=self.kwargs['id'])
+            tax = [order.tax.stripe_id, ] if order.tax else None
+            print(tax)
             for item in order.item.all():
                 line_items.append({
                     'price': item.price,
-                    'quantity': 1   ##########
+                    'quantity': 1,   ##########
+                    'tax_rates': tax
                 })
             discount = order.discount.coupon_id
-        else:            
+        else:
             item = Item.objects.get(id=self.kwargs['id'])
             quantity = request.GET.get('quantity', 1)
             line_items.append({
@@ -32,7 +35,6 @@ class SessionView(View):
                 'quantity': quantity
             })
             discount = None
-       
 
         checkout_session = stripe.checkout.Session.create(
             cancel_url=f'{domain_url}/create_order',
@@ -42,6 +44,9 @@ class SessionView(View):
             discounts=[{
                 'coupon': discount,
             }],
+            # tax_id_collection={
+            #     'enabled': True,
+            # },
             )
         return JsonResponse({'session_id': checkout_session.id})
 
