@@ -10,3 +10,5 @@ sudo apt update
 
 
 sudo apt install stripe
+
+stripe listen --forward-to localhost:8000/webhooks/stripe/

@@ -2,67 +2,85 @@
 <html lang="en">
 <html>
   <head>
+    {% load static %}
     <script src="https://js.stripe.com/v3/"></script>
-     <!-- Required meta tags -->
-     <meta charset="utf-8">
-     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
- 
-     <!-- Bootstrap CSS -->
-     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
- 
-     <title>Confirm order</title>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    {% if order %}
+    <title>Confirm order</title>
+    <script>
+    var dataurl="/buy/{{order.id}}?order=True"
+    var intenturl = "{% url 'payment-intent' order.id %}?order=True"
+    </script>
+    {% elif item %}
+    <title>Buy Item {{ item.id }}</title>
+    <script>
+    var dataurl="/buy/{{ item.id }}?quantity={{ quantity }}"
+    var intenturl = "{% url 'payment-intent' item.id %}"
+    </script>
+    {% endif %}
   </head>
   <body>
     <div class="container-fluid mx-auto my-2 my-sm-3 my-lg-4 p-3">
       <div class="container">
         <h3><strong>Confirm order:</strong></h3>
-        {% if payment_status == 'success' %}
-        <h4>Заказ товара "{{ item.name }}" оформлен успешно</h4>
-        {% elif payment_status == 'cancel' %}
-        <h4>Возникла ошибка при оформление заказа "{{ item.name }}"</h4>
-        {% endif %}
+        {% if order %}
         {% for item in items %}
         <h1>{{ item.name }}</h1>
         <p>{{ item.description }}</p>
         {% endfor %}
-        <button id="buy-button">Buy</button>
-        <script type="text/javascript">
-          const stripe = Stripe('{{ stripe_pk }}');
-          var buyButton = document.getElementById('buy-button');
-          var url = '/buy/{{order.id}}?order=True'
+        {% elif item %}
+        <h1>{{ item.name }}</h1>
+        <p>{{ item.description }}</p>        
+        {% endif %}
 
-          console.log(url)
-          buyButton.addEventListener('click', function() {
-            fetch(url, {method: 'GET'})
-            .then((response) => { return response.json(); })
-            .then((session) => { console.log(session);
-              return stripe.redirectToCheckout({ sessionId: session.session_id });} 
-            )});
-        </script>
-      </div>
-    </div>
+        <button id="buy-button">Buy</button>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+ 
+        <script type="text/javascript" id="SessionScript">
+        var stripe = Stripe('{{ stripe_pk }}');
+        var buyButton = document.getElementById('buy-button');
+        var url = dataurl;
+        buyButton.addEventListener('click', function() {
+        fetch(url, {method: 'GET'})
+        .then((response) => { return response.json(); })
+        .then((session) => { console.log(session);
+            return stripe.redirectToCheckout({ sessionId: session.session_id });} 
+        )});
+        </script>>
+       </div>
+       <div class="container  my-2 my-sm-3 my-lg-4 p-3">
+        <h3><strong>Use our payment form instead:</strong></h3>
+        
     <form id="payment-form">
       {% csrf_token %}
       <input type="text" id="email" placeholder="Email address" />
       <div id="card-element"><!--Stripe.js injects the Card Element--></div>
       <button id="submit">
-        <div class="spinner hidden" id="spinner"></div>
+        <div class="spinner" style="visibility: hidden" id="spinner"></div>
         <span id="button-text">Pay</span>
       </button>
       <p id="card-error" role="alert"></p>
-      <p class="result-message hidden">
+      <p class="result-message" style="visibility: hidden">
         Payment succeeded, see the result in your
         <a href="" target="_blank">Stripe dashboard.</a> Refresh the page to pay again.
       </p>
     </form>
+  </div>
+  </div>
   </body>
 </html>
 
 
 
 <script type="text/javascript">
-  document.querySelector("button").disabled = true;
+  document.querySelector("[id=submit]").disabled = true;
   const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+  var stripe = Stripe('{{ stripe_pk }}');
   var elements = stripe.elements();
   var style = {
   base: {
@@ -85,14 +103,14 @@
   card.mount("#card-element");
   card.on("change", function (event) {
   // Disable the Pay button if there are no card details in the Element
-  document.querySelector("button").disabled = event.empty;
+  document.querySelector("[id=submit]").disabled = event.empty;
   document.querySelector("#card-error").textContent = event.error ? event.error.message : "";
   });
   var form = document.getElementById("payment-form");
   form.addEventListener("submit", function(event) {
   event.preventDefault();
   // Complete payment when the submit button is clicked
-  fetch("{% url 'payment-intent' order.id %}?order=True", {
+  fetch(intenturl, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -141,8 +159,8 @@
       "href",
       "https://dashboard.stripe.com/test/payments/" + paymentIntentId
     );
-  document.querySelector(".result-message").classList.remove("hidden");
-  document.querySelector("button").disabled = true;
+  document.querySelector(".result-message").style.visibility="visible";
+  document.querySelector("[id=submit]").disabled = true;
   };
   // Show the customer the error from Stripe if their card fails to charge
   var showError = function(errorMsgText) {
@@ -157,13 +175,13 @@
   var loading = function(isLoading) {
   if (isLoading) {
     // Disable the button and show a spinner
-    document.querySelector("button").disabled = true;
-    document.querySelector("#spinner").classList.remove("hidden");
-    document.querySelector("#button-text").classList.add("hidden");
+    document.querySelector("[id=submit]").disabled = true;
+    document.querySelector("#spinner").style.visibility = "visible";
+    document.querySelector("#button-text").style.visibility="hidden";
   } else {
-    document.querySelector("button").disabled = false;
-    document.querySelector("#spinner").classList.add("hidden");
-    document.querySelector("#button-text").classList.remove("hidden");
+    document.querySelector("[id=submit]").disabled = false;
+    document.querySelector("#spinner").style.visibility="hidden";
+    document.querySelector("#button-text").style.visibility="visible";
   }
   };
   </script>

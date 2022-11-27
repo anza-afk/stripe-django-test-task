@@ -116,21 +116,23 @@ class IntentView(View):
             if self.request.GET.get('order'):
                 order = Order.objects.get(id=self.kwargs['id'])
                 amount = 0
-                for item in order.item.all*():
+                for item in order.item.all():
 
-                    amount += int(stripe.Price.retrieve(item.price))
+                    amount += stripe.Price.retrieve(item.price)['unit_amount']
                 metadata = {
                     "order_id": order.id
                 }
+                currency = order.item.first().currency
             else:
                 item = Item.objects.get(id=self.kwargs['id'])
                 amount = stripe.Price.retrieve(item.price)['unit_amount']
                 metadata = {
                     "item_id": item.id
                 }
+                currency = item.currency
             intent = stripe.PaymentIntent.create(
                 amount=amount,
-                currency='usd',
+                currency=currency,
                 customer=customer['id'],
                 metadata=metadata
             )
