@@ -1,14 +1,17 @@
 # stripe-django-test-task
 
+Запуск проекта с помощью Docker:
 
-curl -s https://packages.stripe.dev/api/security/keypair/stripe-cli-gpg/public | gpg --dearmor | sudo tee /usr/share/keyrings/stripe.gpg
+Создать .env файл в директории
+C:\Projects\stripe-django-test-task\invoice_generator\invoice_generator
+и заполнить его по примеру .env.example
 
-echo "deb [signed-by=/usr/share/keyrings/stripe.gpg] https://packages.stripe.dev/stripe-cli-debian-local stable main" | sudo tee -a /etc/apt/sources.list.d/stripe.list
+docker-compose -f docker-compose.yml up -d --build
+docker-compose -f docker-compose.yml exec web python manage.py migrate --noinput
+docker-compose -f docker-compose.yml exec web python manage.py collectstatic --no-input --clear
+docker-compose -f docker-compose.yml exec web python manage.py createsuperuser
 
-
-sudo apt update
-
-
-sudo apt install stripe
-
-stripe listen --forward-to localhost:8000/webhooks/stripe/
+endpoint /item/<id> ведёт на оплату заказа одной item из бд
+endpoint /order/<id> ведёт на оплату заранее созданного заказа из бд
+endpoint /create_order ведёт на создание заказа из нескольких вещей
+(оплата нескольких item сработает только, если item в одной валюте)
