@@ -8,6 +8,10 @@ class Item(models.Model):
         max_length=100,
         unique=True
         )
+    currency = models.CharField(
+        max_length=100,
+        default='usd'
+        )
 
     def __str__(self):
         return self.name
