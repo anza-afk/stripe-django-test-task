@@ -12,10 +12,9 @@ RUN apk update \
 RUN pip install --upgrade pip
 COPY ./requirements.txt .
 RUN pip install -r requirements.txt
-
+COPY ./.env ./invoice_generator/.env
 COPY ./entrypoint.sh .
 RUN sed -i 's/\r$//g' /usr/src/invoice_generator/entrypoint.sh
 RUN chmod +x /usr/src/invoice_generator/entrypoint.sh
 COPY . .
 RUN mkdir /usr/src/invoice_generator/static
-RUN python invoice_generator/manage.py collectstatic --noinput
