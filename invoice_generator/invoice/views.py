@@ -7,6 +7,7 @@ from .forms import OrderForm
 from .models import Item, Order
 from datetime import datetime
 from django.views.decorators.csrf import csrf_exempt
+from stripe.error import InvalidRequestError
 import json
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -17,43 +18,49 @@ domain_url = settings.DOMAIN_URL
 class SessionView(View):
     """Эндпоинт stripe сессии"""
     def get(self, request, *args, **kwargs):
-        line_items = []
-        if self.request.GET.get('order'):
-            order = Order.objects.get(id=self.kwargs['id'])
-            tax = [order.tax.stripe_id, ] if order.tax else None
-            for item in order.item.all():
+        try:
+            line_items = []
+            if self.request.GET.get('order'):
+                order = Order.objects.get(id=self.kwargs['id'])
+                tax = [order.tax.stripe_id, ] if order.tax else None
+                for item in order.item.all():
+                    if item.currency != order.item.first().currency:
+                        raise InvalidRequestError
+                    line_items.append({
+                        'price': item.price,
+                        'quantity': 1,
+                        'tax_rates': tax
+                    })
+                discount = order.discount.coupon_id
+                metadata = {
+                    "order_id": order.id
+                }
+            else:
+                item = Item.objects.get(id=self.kwargs['id'])
+                quantity = request.GET.get('quantity', 1)
                 line_items.append({
                     'price': item.price,
-                    'quantity': 1,
-                    'tax_rates': tax
+                    'quantity': quantity,
                 })
-            discount = order.discount.coupon_id
-            metadata = {
-                "order_id": order.id
-            }
-        else:
-            item = Item.objects.get(id=self.kwargs['id'])
-            quantity = request.GET.get('quantity', 1)
-            line_items.append({
-                'price': item.price,
-                'quantity': quantity,
-            })
-            discount = None
-            metadata = {
-                "item_id": item.id
-            }
+                discount = None
+                metadata = {
+                    "item_id": item.id
+                }
 
-        checkout_session = stripe.checkout.Session.create(
-            cancel_url=f'{domain_url}/create_order',
-            success_url=f'{domain_url}/create_order',
-            mode='payment',
-            line_items=line_items,
-            discounts=[{
-                'coupon': discount,
-            }],
-            metadata=metadata
-            )
-        return JsonResponse({'session_id': checkout_session.id})
+            checkout_session = stripe.checkout.Session.create(
+                cancel_url=f'{domain_url}/create_order',
+                success_url=f'{domain_url}/create_order',
+                mode='payment',
+                line_items=line_items,
+                discounts=[{
+                    'coupon': discount,
+                }],
+                metadata=metadata
+                )
+            return JsonResponse({'session_id': checkout_session.id})
+        except Exception as e:
+            print(e)
+            return JsonResponse({'error': str(e)})
 
 
 class IntentView(View):
@@ -66,6 +73,8 @@ class IntentView(View):
                 order = Order.objects.get(id=self.kwargs['id'])
                 amount = 0
                 for item in order.item.all():
+                    if item.currency != order.item.first().currency:
+                        raise InvalidRequestError
 
                     amount += stripe.Price.retrieve(item.price)['unit_amount']
                 metadata = {
