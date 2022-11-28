@@ -56,13 +56,15 @@ class Order(models.Model):
         Tax,
         null=True,
         default=None,
-        on_delete=models.SET_DEFAULT
+        on_delete=models.SET_DEFAULT,
+        blank=True
     )
     discount = models.ForeignKey(
         Discount,
         null=True,
         default=None,
-        on_delete=models.SET_DEFAULT
+        on_delete=models.SET_DEFAULT,
+        blank=True
     )
     order_created = models.DateTimeField(
         null=True,
