@@ -19,9 +19,9 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     environment:
-      - POSTGRES_USER=admin
-      - POSTGRES_PASSWORD=1347aloalo 
-      - POSTGRES_DB=test_bd_dev
+      - POSTGRES_USER=${SQL_USER}
+      - POSTGRES_PASSWORD=${SQL_PASSWORD} 
+      - POSTGRES_DB=${SQL_DATABASE}
 
   nginx:
     build: ./nginx
