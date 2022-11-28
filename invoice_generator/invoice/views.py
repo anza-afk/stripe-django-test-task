@@ -12,7 +12,7 @@ import json
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
-domain_url = settings.DOMAIN_URL
+domain_url = f'http://{settings.DOMAIN_URL}'
 
 
 class SessionView(View):
@@ -31,7 +31,7 @@ class SessionView(View):
                         'quantity': 1,
                         'tax_rates': tax
                     })
-                discount = order.discount.coupon_id
+                discount = order.discount.coupon_id  if order.discount else None
                 metadata = {
                     "order_id": order.id
                 }
@@ -77,6 +77,11 @@ class IntentView(View):
                         raise InvalidRequestError
 
                     amount += stripe.Price.retrieve(item.price)['unit_amount']
+                if order.discount:
+                    amount -= amount * (order.discount.value / 100)
+                if order.tax:
+                    amount += amount * (order.tax.rate / 100)
+
                 metadata = {
                     "order_id": order.id
                 }
@@ -89,7 +94,7 @@ class IntentView(View):
                 }
                 currency = item.currency
             intent = stripe.PaymentIntent.create(
-                amount=amount,
+                amount=int(amount),
                 currency=currency,
                 customer=customer['id'],
                 metadata=metadata
