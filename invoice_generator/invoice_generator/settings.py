@@ -134,8 +134,8 @@ CSRF_TRUSTED_ORIGINS = [
     "http://*localhost:1337",
     "https://*127.0.0.1:1337",
     "http://*127.0.0.1:1337",
-    f"http://*{env('DOMAIN_URL')}:1337",
-    f"https://*{env('DOMAIN_URL')}:1337",
+    f"http://*{env('DOMAIN_URL')}",
+    f"https://*{env('DOMAIN_URL')}",
     ]
 
 
