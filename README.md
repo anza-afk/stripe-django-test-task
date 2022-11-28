@@ -15,9 +15,9 @@ C:\Projects\stripe-django-test-task\invoice_generator\invoice_generator
     
 ### Эндпоинты:
 
-endpoint /item/<id> ведёт на оплату заказа одной item из бд
+endpoint /item/\<id\> ведёт на оплату заказа одной item из бд
 
-endpoint /order/<id> ведёт на оплату заранее созданного заказа из бд
+endpoint /order/\<id\> ведёт на оплату заранее созданного заказа из бд
 
 endpoint /create_order ведёт на создание заказа из нескольких вещей</br>
 *(заказ из нескольких item в разных валютах не пройдёт на этапе оплаты)*
