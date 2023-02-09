@@ -8,7 +8,7 @@
 
 Создать .env файл в директории
 C:\Projects\stripe-django-test-task\invoice_generator\invoice_generator
-и заполнить его по примеру .env.example
+и заполнить его по примеру .env.example из корня проекта
 
 ### Выполнить в корне проекта:
 
