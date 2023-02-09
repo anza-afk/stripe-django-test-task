@@ -1,5 +1,9 @@
 # stripe-django-test-task
 
+Клонируем проект:
+
+git clone https://github.com/anza-afk/stripe-django-test-task.git
+
 ## Запуск проекта с помощью Docker:
 
 Создать .env файл в директории
