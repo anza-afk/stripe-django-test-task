@@ -2,7 +2,7 @@
 
 Клонируем проект:
 
-git clone https://github.com/anza-afk/stripe-django-test-task.git
+    git clone https://github.com/anza-afk/stripe-django-test-task.git
 
 ## Запуск проекта с помощью Docker:
 
